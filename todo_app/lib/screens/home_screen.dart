@@ -262,11 +262,15 @@ class _Header extends StatelessWidget {
             child: ScaleTransition(scale: animation, child: child),
           ),
           child: canClear
-              ? _PillButton(
+              ? ConstrainedBox(
                   key: const ValueKey('clear'),
-                  icon: Icons.delete_sweep_outlined,
-                  label: 'Bersihkan',
-                  onTap: onClear,
+                  // Batasi lebar agar judul tetap punya ruang di layar sempit.
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: _PillButton(
+                    icon: Icons.delete_sweep_outlined,
+                    label: 'Bersihkan',
+                    onTap: onClear,
+                  ),
                 )
               : const SizedBox.shrink(key: ValueKey('none')),
         ),
@@ -277,7 +281,6 @@ class _Header extends StatelessWidget {
 
 class _PillButton extends StatelessWidget {
   const _PillButton({
-    super.key,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -304,7 +307,14 @@ class _PillButton extends StatelessWidget {
           children: [
             Icon(icon, size: 17, color: AppColors.ink),
             const SizedBox(width: 7),
-            Text(label, style: AppText.button.copyWith(fontSize: 13.5)),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.button.copyWith(fontSize: 13.5),
+              ),
+            ),
           ],
         ),
       ),

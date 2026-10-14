@@ -9,15 +9,23 @@ import 'package:todo_app/widgets/filter_bar.dart';
 void main() {
   /// Membuka aplikasi dengan penyimpanan tiruan. Tanpa [stored], controller
   /// memuat 6 contoh tugas (4 aktif, 2 selesai). Layarnya dibuat sangat tinggi
-  /// supaya seluruh daftar langsung terbangun tanpa perlu scroll.
-  Future<TodoController> pumpApp(WidgetTester tester, {String? stored}) async {
+  /// supaya seluruh daftar langsung terbangun tanpa perlu scroll; [width]
+  /// (dalam dp) dan [textScale] bisa diubah untuk menguji layar sempit / teks besar.
+  Future<TodoController> pumpApp(
+    WidgetTester tester, {
+    String? stored,
+    double width = 360,
+    double textScale = 1,
+  }) async {
     SharedPreferences.setMockInitialValues({'todos_v1': ?stored});
     final prefs = await SharedPreferences.getInstance();
     final controller = TodoController(prefs)..load();
 
-    tester.view.physicalSize = const Size(1080, 12000);
+    tester.view.physicalSize = Size(width * 3, 12000);
     tester.view.devicePixelRatio = 3;
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearAllTestValues);
 
     await tester.pumpWidget(TodoApp(controller: controller));
     await tester.pumpAndSettle();
@@ -125,6 +133,25 @@ void main() {
 
     expect(find.byType(CheckBadge), findsNWidgets(2));
     expect(find.text('Kerjakan tugas aplikasi Flutter'), findsNothing);
+  });
+
+  testWidgets('halaman utama tidak overflow pada layar sempit dengan teks besar', (tester) async {
+    await pumpApp(tester, width: 320, textScale: 1.6);
+
+    expect(tester.takeException(), isNull);
+    // Teks besar membuat halaman sangat panjang, jadi hanya sebagian kartu
+    // yang terbangun (ListView membangun item secara malas).
+    expect(find.byType(CheckBadge), findsWidgets);
+  });
+
+  testWidgets('form tugas tidak overflow pada layar sempit dengan teks besar', (tester) async {
+    await pumpApp(tester, width: 320, textScale: 1.6, stored: '[]');
+
+    await tester.tap(find.text('Tambah tugas baru'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tugas baru'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('tombol Bersihkan menghapus semua tugas selesai', (tester) async {
